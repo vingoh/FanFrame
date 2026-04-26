@@ -47,6 +47,8 @@
   - 标准 loop：`think -> decide -> tool -> observe -> answer`
   - 终止条件：max_steps / timeout / fail_count
   - 统一输出：final_answer + steps + tool_traces
+  - run state 绑定 `session_id`（会话边界与状态由 Session Model 统一定义）
+  - 流程编排唯一入口（skill 不负责全局调度、恢复与 session 生命周期）
 - `P1`
   - 状态机化（idle/running/waiting_tool/finished/error）
   - 中断恢复（checkpoint）
@@ -57,6 +59,7 @@
 ### 1.4 Agent 基础能力
 - `P0`
   - ReAct Agent（最小可用）
+  - 多步任务拆解与执行策略由 agent 决策（skill 仅提供节点能力）
 - `P1`
   - Planner Agent（任务拆解）
   - Reviewer Agent（自检与纠错）
@@ -64,13 +67,27 @@
   - Router Agent（多 Agent 分发）
   - 多 Agent 协作模式（串行/并行）
 
+### 1.5 Session Model（会话模型）
+- `P0`
+  - `session_id` 生成与传递规范（每次 run 必带）
+  - Session 基础状态（active / paused / closed）
+  - Session 上下文边界（history、memory scope、tool trace 归属）
+  - 最小字段契约：`session_id`、`status`、`created_at`、`updated_at`、`last_turn_id`、`metadata`
+- `P1`
+  - 会话恢复语义（resume from checkpoint）
+  - 会话级资源治理（max_steps、token_budget、timeout）
+  - 可选字段契约：`user_id`（用于多用户隔离）
+- `P2`
+  - 会话归档与 TTL 清理策略
+  - 会话合并/分叉策略（可选）
+
 ---
 
 ## 2. 关键增强模块（Memory & Skills）
 
 ### 2.1 Memory（记忆系统）
 - `P0`
-  - 短期记忆（会话历史窗口）
+  - 短期记忆（会话历史窗口；遵循 Session Model 的 `session_id` 隔离）
   - 长期记忆存储接口（先抽象，后具体实现）
   - top-k 检索注入（禁止全量注入）
 - `P1`
@@ -82,11 +99,12 @@
 
 ### 2.2 Skill System（技能系统）
 - `P0`
-  - skill 抽象（name/description/trigger/steps/version）
-  - skill 执行器（可调用 tool、可产出中间状态）
+  - Capability Skill 抽象（`name`、`description`、`version`、`metadata`）
+  - 最小接口契约：`applies(context) -> bool`、`augment(context) -> context`、`validate(candidate_output) -> ValidationResult`
+  - skill 注册与查询（按名称/版本/标签）
 - `P1`
-  - 触发策略（规则 + LLM 判断）
-  - 版本管理（兼容旧 skill）
+  - 触发策略（规则 + LLM 判断；仅决定是否调用节点能力）
+  - 版本管理与兼容窗口（旧 skill 逐步收敛为 capability）
 - `P2`
   - skill 市场化加载（外部包）
   - skill 评测与排名
@@ -107,10 +125,10 @@
 
 ### 3.2 可调试性（Observability）
 - `P0`
-  - 结构化日志（session_id/turn_id/call_id）
+  - 结构化日志（session_id/turn_id/call_id；session 生命周期以 Session Model 为准）
   - trace 链路（LLM/tool/memory 全链路）
 - `P1`
-  - 回放系统（按 session 重放）
+  - 回放系统（按 session 重放；恢复语义与 Session Model 对齐）
   - 调试模式（verbose + 中间状态输出）
 - `P2`
   - 调试面板 UI（可视化步骤/耗时/错误）
@@ -137,7 +155,7 @@
 - `P1`
   - `replay` / `eval` / `config` 子命令
 - `P2`
-  - profile、session 管理、批处理执行
+  - profile、session 管理、批处理执行（状态与生命周期遵循 Session Model）
 
 ### 4.2 Demo
 - `P0`
@@ -166,6 +184,8 @@
   - Tool System `P0`
   - Orchestrator `P0`
   - ReAct Agent `P0`
+  - Session Model `P0`（`session_id` 贯穿与基础状态）
+  - Skill `P0`（抽象与注册机制）
   - Config `P0`
   - Observability `P0`
   - 测试：UT + 最小集成测试 `P0`
@@ -179,6 +199,8 @@
   - Memory `P0 + P1`
   - Planner/Reviewer `P1`
   - Tool 自动加载 `P1`
+  - Session Model `P1`（按 session 回放与恢复语义）
+  - Capability Skill `P1`（在 agent loop 中接入 augment + validate）
   - 回放 `P1`
   - 回归集 `P1`
 - 验收：
@@ -191,6 +213,8 @@
   - Router Agent `P2（可提前到P1）`
   - Skill System `P0 + P1`
   - CLI 扩展 `P1`
+  - Session Model `P2`（TTL/归档与高级管理）
+  - Capability Skill `P2`（版本治理与评测体系）
   - Demo + 文档 `P0/P1`
   - 调试面板 `P2`
 - 验收：
