@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional, Any, Callable
 from .message import Message
-from .llm import MyLLM
+from .llm import BaseLLM
 from .config import Config
 from tool.tool_executor import ToolExecutor
 
@@ -11,7 +11,7 @@ class Agent(ABC):
     def __init__(
         self,
         name: str,
-        llm: MyLLM,
+        llm: BaseLLM,
         system_prompt: Optional[str] = None,
         config: Optional[Config] = None,
         tool_executor: Optional[ToolExecutor] = None
