@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "tools": [
+    {
+      "name": "GetCurrentTime",
+      "description": "获取指定时区的当前时间。format 为 iso 时返回 ISO 8601 字符串，为 unix 时返回 Unix 秒级时间戳字符串。",
+      "handler": "tool.builtins.time_tool:get_current_time",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "timezone": { "type": "string" },
+          "format": { "type": "string" }
+        }
+      }
+    },
+    {
+      "name": "EvaluateMath",
+      "description": "对仅含加减乘除、括号与数字常量的算术表达式求值，返回结果的字符串形式。",
+      "handler": "tool.builtins.math_tool:evaluate_math",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expression": { "type": "string" }
+        },
+        "required": ["expression"]
+      }
+    },
+    {
+      "name": "TruncateText",
+      "description": "将文本截断至不超过 max_chars 个字符，并返回正文与长度、是否截断等元信息。",
+      "handler": "tool.builtins.text_tool:truncate_text",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" },
+          "max_chars": { "type": "integer" }
+        },
+        "required": ["text", "max_chars"]
+      }
+    },
+    {
+      "name": "FormatJson",
+      "description": "校验并美化 JSON 字符串（默认缩进 2）。若输入非法 JSON，返回错误说明。",
+      "handler": "tool.builtins.text_tool:format_json",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" },
+          "indent": { "type": "integer" }
+        },
+        "required": ["text"]
+      }
+    }
+  ]
+}
